@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="eclipse_external_annotations_m2e_plugin.feature"
+      label="eclipse-external-annotations-m2e-plugin"
+      version="1.0.0.qualifier"
+      plugin="eclipse-external-annotations-m2e-plugin.core">
+
+   <description url="http://www.example.com/description">
+      Allows to configure the path to external annotations for the Maven Dependencies and JRE containers. 
+      The path is taken from the "m2e.jdt.annotationpath" property in POM files if it exists.
+   </description>
+
+   <copyright url="http://www.example.com/copyright">
+      Sylvain LAURENT, 2016
+   </copyright>
+
+   <license url="http://www.apache.org/licenses/">
+      Apache
+   </license>
+
+   <requires>
+      <import plugin="org.eclipse.core.runtime"/>
+      <import plugin="org.eclipse.core.resources" version="3.5.1" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.jdt.core" version="3.5.1" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.ui.console" version="3.4.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.ui.ide" version="3.5.1" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.core.commands"/>
+      <import plugin="org.eclipse.jface"/>
+      <import plugin="org.eclipse.ui.navigator"/>
+      <import plugin="org.eclipse.ui.workbench"/>
+      <import plugin="org.eclipse.m2e.maven.runtime" version="1.6.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.m2e.core" version="1.6.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.m2e.jdt" version="1.6.0" match="greaterOrEqual"/>
+      <import plugin="org.slf4j.api"/>
+      <import plugin="org.eclipse.m2e.core.ui" version="1.6.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.jdt.ui" version="3.8.1" match="greaterOrEqual"/>
+   </requires>
+
+   <plugin
+         id="eclipse-external-annotations-m2e-plugin.core"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+</feature>
