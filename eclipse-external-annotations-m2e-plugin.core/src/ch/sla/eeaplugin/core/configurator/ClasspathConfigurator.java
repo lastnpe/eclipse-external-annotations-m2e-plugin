@@ -1,4 +1,4 @@
-package eeaplugin.core.configurator;
+package ch.sla.eeaplugin.core.configurator;
 
 import java.util.Properties;
 

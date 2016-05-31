@@ -13,15 +13,4 @@
   <artifactId>eclipse-external-annotations-m2e-plugin.site</artifactId>
   <packaging>eclipse-repository</packaging>
 
-
-  <build>
-    <plugins>
-
-    </plugins>
-  </build>
-
-  <profiles>
-
-  </profiles>
-
 </project>

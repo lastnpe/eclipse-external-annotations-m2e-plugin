@@ -4,18 +4,10 @@
      <extension
            point="org.eclipse.m2e.core.lifecycleMappingMetadataSource">
      </extension>
-     <!--<extension
-           point="org.eclipse.m2e.core.lifecycleMappings">
-        <lifecycleMapping
-              class="lifecyclemapping.LifecycleMapping1"
-              id="eclipse-external-annotations-m2e-plugin.core.lifecycleMapping1"
-              name="validate">
-        </lifecycleMapping>
-     </extension>-->
      <extension
            point="org.eclipse.m2e.core.projectConfigurators">
         <configurator
-              class="eeaplugin.core.configurator.ClasspathConfigurator"
+              class="ch.sla.eeaplugin.core.configurator.ClasspathConfigurator"
               id="eeaplugin.core.configurator.ClasspathConfigurator"
               runsAfter="org.eclipse.m2e.jdt.javaConfigurator"
               >
@@ -24,7 +16,7 @@
      <extension
            point="org.eclipse.m2e.core.mavenProjectChangedListeners">
         <listener
-              class="eeaplugin.core.configurator.ClasspathConfigurator">
+              class="ch.sla.eeaplugin.core.configurator.ClasspathConfigurator">
         </listener>
      </extension>
 </plugin>
