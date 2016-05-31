@@ -8,7 +8,7 @@
            point="org.eclipse.m2e.core.projectConfigurators">
         <configurator
               class="ch.sla.eeaplugin.core.configurator.ClasspathConfigurator"
-              id="eeaplugin.core.configurator.ClasspathConfigurator"
+              id="ch.sla.eeaplugin.core.configurator.ClasspathConfigurator"
               runsAfter="org.eclipse.m2e.jdt.javaConfigurator"
               >
         </configurator>
