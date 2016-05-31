@@ -24,7 +24,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 	@Override
 	public void configureRawClasspath(ProjectConfigurationRequest request, IClasspathDescriptor classpath,
 			IProgressMonitor monitor) throws CoreException {
-		String annotationpath = getAnnotationPath(request.getMavenProject());
+		String annotationpath = getAnnotationPath(request.getMavenProjectFacade());
 		if (annotationpath != null && !annotationpath.isEmpty()) {
 			for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
 				if (cpEntry.getEntryKind() == IClasspathEntry.CPE_CONTAINER) {
@@ -36,7 +36,11 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
 	}
 
-	String getAnnotationPath(MavenProject mavenProject) {
+	String getAnnotationPath(IMavenProjectFacade mavenProjectFacade) {
+		if (mavenProjectFacade == null) {
+			return null;
+		}
+		MavenProject mavenProject = mavenProjectFacade.getMavenProject();
 		if (mavenProject == null) {
 			return null;
 		}
@@ -59,8 +63,8 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 	}
 
 	public void mavenProjectChanged(MavenProjectChangedEvent event, IProgressMonitor monitor) throws CoreException {
-		String newAnnotationpath = getAnnotationPath(event.getMavenProject().getMavenProject());
-		String oldAnnotationpath = getAnnotationPath(event.getOldMavenProject().getMavenProject());
+		String newAnnotationpath = getAnnotationPath(event.getMavenProject());
+		String oldAnnotationpath = getAnnotationPath(event.getOldMavenProject());
 		if (newAnnotationpath == oldAnnotationpath
 				|| (newAnnotationpath != null && newAnnotationpath.equals(oldAnnotationpath))) {
 			return;
