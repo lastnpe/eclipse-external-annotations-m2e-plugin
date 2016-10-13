@@ -3,12 +3,15 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Maven Integration for Eclipse Settings
 Bundle-SymbolicName: eclipse-external-annotations-m2e-plugin.core;singleton:=true
 Bundle-Version: 1.0.0.qualifier
-Bundle-Vendor: Sylvain LAURENT
+Bundle-Vendor: Sylvain LAURENT & Michael Vorburger.ch
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.jdt.core,
  org.eclipse.m2e.maven.runtime;bundle-version="[1.6.0,1.8.0)",
  org.eclipse.m2e.core;bundle-version="[1.6.0,1.8.0)",
  org.eclipse.m2e.jdt;bundle-version="[1.6.0,1.8.0)",
- org.slf4j.api
+ org.slf4j.api,
+ org.eclipse.core.resources;bundle-version="3.11.0",
+ org.eclipse.jdt.launching;bundle-version="3.8.100",
+ org.eclipse.debug.core;bundle-version="3.10.100"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
