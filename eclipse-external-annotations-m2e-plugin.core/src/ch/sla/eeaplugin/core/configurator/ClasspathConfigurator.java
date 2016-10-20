@@ -1,6 +1,7 @@
 package ch.sla.eeaplugin.core.configurator;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -18,7 +19,9 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
@@ -75,7 +78,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     private void setJREsEEA(Map<MavenGAV, IPath> mapping, IProject project) throws CoreException {
         IPath javaEEAPath = mapping.get(JAVA_GAV);
         if (javaEEAPath != null) {
-		// TODO This does not actually work (because RuntimeClasspathEntry.updateClasspathEntry() does nothing for container, only Archive & Variable
+            // TODO This does not actually work (because RuntimeClasspathEntry.updateClasspathEntry() does nothing for container, only Archive & Variable
             JavaRuntime.computeJREEntry(JavaCore.create(project)).setExternalAnnotationsPath(javaEEAPath);
             LOGGER.info("Setting External Annotations of JRE to {}", javaEEAPath);
         }
@@ -188,8 +191,8 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             // but for now let's just:
             IPath javaEEAPath = mapping.get(JAVA_GAV);
             if (javaEEAPath != null) {
-		for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
-			if (cpEntry.getPath().toString().startsWith("org.eclipse.jdt.launching.JRE_CONTAINER")) {
+                for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
+                    if (cpEntry.getPath().toString().startsWith("org.eclipse.jdt.launching.JRE_CONTAINER")) {
                         setExternalAnnotationsPath(cpEntry, javaEEAPath.toString());
                     }
                 }
@@ -237,7 +240,56 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     }
 
     @Override
-    public void configure(ProjectConfigurationRequest arg0, IProgressMonitor monitor) throws CoreException {
+    public void configure(ProjectConfigurationRequest projectConfigurationRequest, IProgressMonitor monitor) throws CoreException {
+        Plugin plugin = projectConfigurationRequest.getMavenProject().getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
+        if (plugin == null) {
+            return;
+        }
+        Xpp3Dom configurationDom = (Xpp3Dom) plugin.getConfiguration();
+        if (configurationDom == null) {
+            return;
+        }
+        Xpp3Dom compilerArgumentsDom = configurationDom.getChild("compilerArguments");
+        if (compilerArgumentsDom == null) {
+            return;
+        }
+        Xpp3Dom propertiesDom = compilerArgumentsDom.getChild("properties");
+        String configurationCompilerArgumentsPropertiesPath = propertiesDom.getValue();
+        if (configurationCompilerArgumentsPropertiesPath == null) {
+            return;
+        }
+
+        File configurationCompilerArgumentsFile = new File(configurationCompilerArgumentsPropertiesPath);
+        if (!configurationCompilerArgumentsFile.exists()) {
+            return;
+        }
+        if (configurationCompilerArgumentsFile.getPath().replace('\\', '/').contains("/.settings/")) {
+            return;
+        }
+
+        Properties configurationCompilerArgumentsProperties = new Properties();
+        try (FileInputStream inputStream = new FileInputStream(configurationCompilerArgumentsFile)) {
+            configurationCompilerArgumentsProperties.load(inputStream);
+        } catch (IOException e) {
+            LOGGER.error("IOException while reading File: {}", configurationCompilerArgumentsFile, e);
+            return;
+        }
+        if (configurationCompilerArgumentsProperties.isEmpty()) {
+            return;
+        }
+
+        IJavaProject jProject = JavaCore.create(projectConfigurationRequest.getProject());
+        if (jProject == null) {
+            return;
+        }
+        jProject.setOptions(fromProperties(configurationCompilerArgumentsProperties));
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    Map<String, String> fromProperties(Properties properties) {
+        Map configurationCompilerArgumentsPropertiesAsMap = properties;
+        Map<String, String> map = new HashMap<String, String>(configurationCompilerArgumentsPropertiesAsMap);
+        return map;
     }
 
     @Override
