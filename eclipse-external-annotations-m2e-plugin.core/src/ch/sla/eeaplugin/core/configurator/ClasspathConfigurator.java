@@ -3,8 +3,9 @@ package ch.sla.eeaplugin.core.configurator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -17,8 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
@@ -48,11 +51,16 @@ import org.slf4j.LoggerFactory;
 /**
  * M2E Project configurator to set external null annotations.
  *
- * @author Sylvain LAURENT - original implementation, with one EEA for all CP containers (i.e. JRE & M2E's, top level)
- * @author Michael Vorburger - support multiple individual EEA JARs, per M2E entry (not container); and JRE
+ * @author Sylvain LAURENT - original impl: Single EEA for all containers
+ * @author Michael Vorburger - support multiple individual EEA JARs, per M2E
+ *         entry and JRE; plus set compiler properties from POM
  */
 public class ClasspathConfigurator extends AbstractProjectConfigurator implements IJavaProjectConfigurator {
 
+    /**
+     *
+     */
+    private static final Pattern NEWLINE_REGEXP = Pattern.compile("\\n");
     private static final MavenGAV JAVA_GAV = MavenGAV.of("java", "java");
     private static final String EEA_FOR_GAV_FILENAME = "eea-for-gav";
     private static final String M2E_JDT_ANNOTATIONPATH = "m2e.jdt.annotationpath";
@@ -114,22 +122,9 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             return Collections.emptyList();
         }
         File fileOrDirectory = optionalFileOrDirectory.get();
-        if (!fileOrDirectory.exists()) {
-            return Collections.emptyList();
-        }
-        if (fileOrDirectory.isDirectory()) {
-            File file = new File(fileOrDirectory, fileName);
-            return readFileLines(file.toPath());
-        } else if (fileOrDirectory.isFile()) {
-            Path jarFilePath = Paths.get(fileOrDirectory.toURI());
-            URI jarEntryURI = URI.create("jar:file:" + jarFilePath.toUri().getPath() + "!/" + fileName);
-            try (FileSystem zipfs = FileSystems.newFileSystem(jarEntryURI, Collections.emptyMap())) {
-                Path jarEntryPath = Paths.get(jarEntryURI);
-                return readFileLines(jarEntryPath);
-            } catch (IOException e) {
-                LOGGER.error("IOException from ZipFileSystemProvider for: {}", jarEntryURI, e);
-                return Collections.emptyList();
-            }
+        Optional<String> fileContent = read(fileOrDirectory, fileName);
+        if (fileContent.isPresent()) {
+            return readFileLines(fileContent.get());
         } else {
             return Collections.emptyList();
         }
@@ -150,20 +145,56 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         }
     }
 
-    private List<String> readFileLines(Path path) {
-        if (!Files.exists(path)) {
-            return Collections.emptyList();
+    /**
+     * Reads content of a name file from either inside a JAR or a directory
+     * @param fileOrDirectory either a ZIP/JAR file, or a directory
+     * @param fileName file to look for in that ZIP/JAR file or directory
+     * @return content of file, if any
+     */
+    private Optional<String> read(File fileOrDirectory, String fileName) {
+        if (!fileOrDirectory.exists()) {
+            LOGGER.error("File does not exist: {}", fileOrDirectory);
+            return Optional.empty();
         }
-        try (Stream<String> linesStream = Files.lines(path, StandardCharsets.UTF_8)) {
-            return linesStream
-                    .map(t -> t.trim())
-                    .filter(t -> !t.isEmpty())
-                    .filter(t -> !t.startsWith("#"))
-                    .collect(Collectors.toList());
+        if (fileOrDirectory.isDirectory()) {
+            File file = new File(fileOrDirectory, fileName);
+            return readFile(file.toPath());
+        } else if (fileOrDirectory.isFile()) {
+            Path jarFilePath = Paths.get(fileOrDirectory.toURI());
+            URI jarEntryURI = URI.create("jar:file:" + jarFilePath.toUri().getPath() + "!/" + fileName);
+            try (FileSystem zipfs = FileSystems.newFileSystem(jarEntryURI, Collections.emptyMap())) {
+                Path jarEntryPath = Paths.get(jarEntryURI);
+                if (Files.exists(jarEntryPath)) {
+                    return readFile(jarEntryPath);
+                } else {
+                    return Optional.empty();
+                }
+            } catch (IOException e) {
+                LOGGER.error("IOException from ZipFileSystemProvider for: {}", jarEntryURI, e);
+                return Optional.empty();
+            }
+        } else {
+            LOGGER.error("File is neither a directory nor a file: {}", fileOrDirectory);
+            return Optional.empty();
+        }
+
+    }
+
+    private Optional<String> readFile(Path path) {
+        try {
+            return Optional.of(new String(Files.readAllBytes(path), Charset.forName("UTF-8")));
         } catch (IOException e) {
-            LOGGER.error("IOException while reading from: {}", path, e);
-            return Collections.emptyList();
+            LOGGER.error("IOException from Files.readAllBytes for: {}", path, e);
+            return Optional.empty();
         }
+    }
+
+    private List<String> readFileLines(String string) {
+        return NEWLINE_REGEXP.splitAsStream(string)
+                .map(t -> t.trim())
+                .filter(t -> !t.isEmpty())
+                .filter(t -> !t.startsWith("#"))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -239,10 +270,66 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         }
     }
 
+    /**
+     * TODO Doc!
+     *
+     * <p>The reason we support (and give preference to) a dependency over the
+     * properties from the compilerArguments configuration is that the latter
+     * requires the file to be at the given location, which it may not (yet) be;
+     * for the build this is typically based e.g. on a maven-dependency-plugin
+     * unpack - which may not have run, yet.
+     */
     @Override
     public void configure(ProjectConfigurationRequest projectConfigurationRequest, IProgressMonitor monitor) throws CoreException {
-        Plugin plugin = projectConfigurationRequest.getMavenProject().getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
+        final MavenProject mavenProject = projectConfigurationRequest.getMavenProject();
+        final Plugin plugin = mavenProject.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
         if (plugin == null) {
+            return;
+        }
+        for (Dependency dependency : plugin.getDependencies()) {
+            if ("tycho-compiler-jdt".equals(dependency.getArtifactId())) {
+                continue;
+            }
+            Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(),
+                    dependency.getType(), dependency.getClassifier(), mavenProject.getRemoteArtifactRepositories(),
+                    monitor);
+            if (artifact != null && artifact.isResolved()) {
+/*
+                // Inspired by what e.g. https://github.com/pierrebrunin/m2eclipse.sonar/blob/master/org.maven.ide.eclipse.checkstyle/src/org/maven/ide/eclipse/checkstyle/MavenCheckstyleProjectConfigurator.java does
+                // TODO How to make this work for both JAR and workspace resolution open project?
+                 try {
+                    URL url = new URL("jar:" + artifact.getFile().toURI().toURL().toString() + "!/org.eclipse.jdt.core.prefs");
+                    if (url.toString().contains("tycho-compiler-jdt")) {
+                        continue;
+                    }
+                    try (InputStream inputStream = url.openStream()) {
+                        configureProjectFromProperties(projectConfigurationRequest.getProject(), inputStream);
+                        return;
+                    } catch (FileNotFoundException e) {
+                        // This isn't great - but how to do an exists() on URL like this?
+                    } catch (IOException e) {
+                        LOGGER.error("IOException while reading from URL: {}", url, e);
+                        return;
+                    }
+                } catch (MalformedURLException e) {
+                    LOGGER.error("MalformedURLException while Artifact: {}", artifact, e);
+                }
+*/
+                Optional<String> optionalPropertiesAsText = read(artifact.getFile(), "org.eclipse.jdt.core.prefs");
+                optionalPropertiesAsText.ifPresent(propertiesAsText -> {
+                    Properties configurationCompilerArgumentsProperties = new Properties();
+                    try {
+                        configurationCompilerArgumentsProperties.load(new StringReader(propertiesAsText));
+                        configureProjectFromProperties(projectConfigurationRequest.getProject(), configurationCompilerArgumentsProperties);
+                        return;
+                    } catch (IOException e) {
+                        LOGGER.error("IOException while reading properties: {}", propertiesAsText, e);
+                    }
+                });
+            }
+        }
+
+        if (!(plugin.getConfiguration() instanceof Xpp3Dom)) {
             return;
         }
         Xpp3Dom configurationDom = (Xpp3Dom) plugin.getConfiguration();
@@ -267,26 +354,29 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             return;
         }
 
-        Properties configurationCompilerArgumentsProperties = new Properties();
         try (FileInputStream inputStream = new FileInputStream(configurationCompilerArgumentsFile)) {
+            Properties configurationCompilerArgumentsProperties = new Properties();
             configurationCompilerArgumentsProperties.load(inputStream);
-        } catch (IOException e) {
-            LOGGER.error("IOException while reading File: {}", configurationCompilerArgumentsFile, e);
+            configureProjectFromProperties(projectConfigurationRequest.getProject(), configurationCompilerArgumentsProperties);
             return;
+        } catch (IOException e) {
+            LOGGER.error("IOException while reading file: {}", configurationCompilerArgumentsFile, e);
         }
+    }
+
+    private void configureProjectFromProperties(IProject project, Properties configurationCompilerArgumentsProperties) {
         if (configurationCompilerArgumentsProperties.isEmpty()) {
             return;
         }
-
-        IJavaProject jProject = JavaCore.create(projectConfigurationRequest.getProject());
-        if (jProject == null) {
+        IJavaProject javaProject = JavaCore.create(project);
+        if (javaProject == null) {
             return;
         }
-        jProject.setOptions(fromProperties(configurationCompilerArgumentsProperties));
+        javaProject.setOptions(fromProperties(configurationCompilerArgumentsProperties));
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    Map<String, String> fromProperties(Properties properties) {
+    private Map<String, String> fromProperties(Properties properties) {
         Map configurationCompilerArgumentsPropertiesAsMap = properties;
         Map<String, String> map = new HashMap<String, String>(configurationCompilerArgumentsPropertiesAsMap);
         return map;
