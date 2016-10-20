@@ -271,7 +271,10 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     }
 
     /**
-     * TODO Doc!
+     * Configure Project's JDT Compiler Properties. First attempts to read
+     * a file named "org.eclipse.jdt.core.prefs" stored in a dependency of the
+     * maven-compiler-plugin.  If none found, copy the properties read from the
+     * maven-compiler-plugin configuration compilerArguments properties.
      *
      * <p>The reason we support (and give preference to) a dependency over the
      * properties from the compilerArguments configuration is that the latter
@@ -294,27 +297,6 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
                     dependency.getType(), dependency.getClassifier(), mavenProject.getRemoteArtifactRepositories(),
                     monitor);
             if (artifact != null && artifact.isResolved()) {
-/*
-                // Inspired by what e.g. https://github.com/pierrebrunin/m2eclipse.sonar/blob/master/org.maven.ide.eclipse.checkstyle/src/org/maven/ide/eclipse/checkstyle/MavenCheckstyleProjectConfigurator.java does
-                // TODO How to make this work for both JAR and workspace resolution open project?
-                 try {
-                    URL url = new URL("jar:" + artifact.getFile().toURI().toURL().toString() + "!/org.eclipse.jdt.core.prefs");
-                    if (url.toString().contains("tycho-compiler-jdt")) {
-                        continue;
-                    }
-                    try (InputStream inputStream = url.openStream()) {
-                        configureProjectFromProperties(projectConfigurationRequest.getProject(), inputStream);
-                        return;
-                    } catch (FileNotFoundException e) {
-                        // This isn't great - but how to do an exists() on URL like this?
-                    } catch (IOException e) {
-                        LOGGER.error("IOException while reading from URL: {}", url, e);
-                        return;
-                    }
-                } catch (MalformedURLException e) {
-                    LOGGER.error("MalformedURLException while Artifact: {}", artifact, e);
-                }
-*/
                 Optional<String> optionalPropertiesAsText = read(artifact.getFile(), "org.eclipse.jdt.core.prefs");
                 optionalPropertiesAsText.ifPresent(propertiesAsText -> {
                     Properties configurationCompilerArgumentsProperties = new Properties();
