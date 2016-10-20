@@ -164,11 +164,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             URI jarEntryURI = URI.create("jar:file:" + jarFilePath.toUri().getPath() + "!/" + fileName);
             try (FileSystem zipfs = FileSystems.newFileSystem(jarEntryURI, Collections.emptyMap())) {
                 Path jarEntryPath = Paths.get(jarEntryURI);
-                if (Files.exists(jarEntryPath)) {
-                    return readFile(jarEntryPath);
-                } else {
-                    return Optional.empty();
-                }
+                return readFile(jarEntryPath);
             } catch (IOException e) {
                 LOGGER.error("IOException from ZipFileSystemProvider for: {}", jarEntryURI, e);
                 return Optional.empty();
@@ -182,7 +178,11 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
     private Optional<String> readFile(Path path) {
         try {
-            return Optional.of(new String(Files.readAllBytes(path), Charset.forName("UTF-8")));
+            if (Files.exists(path)) {
+                return Optional.of(new String(Files.readAllBytes(path), Charset.forName("UTF-8")));
+            } else {
+                return Optional.empty();
+            }
         } catch (IOException e) {
             LOGGER.error("IOException from Files.readAllBytes for: {}", path, e);
             return Optional.empty();
