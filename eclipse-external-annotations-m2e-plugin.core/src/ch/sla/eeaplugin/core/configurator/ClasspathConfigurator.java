@@ -36,8 +36,6 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.launching.IRuntimeClasspathEntry;
-import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.m2e.core.project.IMavenProjectFacade;
 import org.eclipse.m2e.core.project.MavenProjectChangedEvent;
 import org.eclipse.m2e.core.project.configurator.AbstractProjectConfigurator;
@@ -57,10 +55,8 @@ import org.slf4j.LoggerFactory;
  */
 public class ClasspathConfigurator extends AbstractProjectConfigurator implements IJavaProjectConfigurator {
 
-    /**
-     *
-     */
     private static final Pattern NEWLINE_REGEXP = Pattern.compile("\\n");
+    private static final String JRE_CONTAINER = "org.eclipse.jdt.launching.JRE_CONTAINER";
     private static final MavenGAV JAVA_GAV = MavenGAV.of("java", "java");
     private static final String EEA_FOR_GAV_FILENAME = "eea-for-gav";
     private static final String M2E_JDT_ANNOTATIONPATH = "m2e.jdt.annotationpath";
@@ -70,7 +66,6 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     @Override
     public void configureClasspath(IMavenProjectFacade mavenProjectFacade, IClasspathDescriptor classpath,
             IProgressMonitor monitor) throws CoreException {
-        dump("configureClasspath", classpath);
         List<IPath> classpathEntryPaths = classpath.getEntryDescriptors().stream().map(cpEntry -> cpEntry.getPath()).collect(Collectors.toList());
         Map<MavenGAV, IPath> mapping = getExternalAnnotationMapping(classpathEntryPaths);
         for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
@@ -80,16 +75,9 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
                     setExternalAnnotationsPath(cpEntry, e.getValue().toString());
                  });
         }
-        setJREsEEA(mapping, mavenProjectFacade.getProject());
-    }
-
-    private void setJREsEEA(Map<MavenGAV, IPath> mapping, IProject project) throws CoreException {
-        IPath javaEEAPath = mapping.get(JAVA_GAV);
-        if (javaEEAPath != null) {
-            // TODO This does not actually work (because RuntimeClasspathEntry.updateClasspathEntry() does nothing for container, only Archive & Variable
-            JavaRuntime.computeJREEntry(JavaCore.create(project)).setExternalAnnotationsPath(javaEEAPath);
-            LOGGER.info("Setting External Annotations of JRE to {}", javaEEAPath);
-        }
+        // Do *NOT* configure the JRE's EEA here, but in configureRawClasspath(),
+        // because it's the wrong time for M2E (and will break project import,
+        // when the IProject doesn't fully exist in JDT yet at this stage).
     }
 
     private void setExternalAnnotationsPath(IClasspathEntryDescriptor cpEntry, String path) {
@@ -102,29 +90,33 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     private Map<MavenGAV, IPath> getExternalAnnotationMapping(List<IPath> classpathEntryPaths) {
         Map<MavenGAV, IPath> mapping = new HashMap<>();
         for (IPath cpEntryPath : classpathEntryPaths) {
-            List<String> gavLines = getPath(cpEntryPath, EEA_FOR_GAV_FILENAME);
-            gavLines.forEach(line -> {
-                try {
-                    MavenGAV gav = MavenGAV.parse(line);
-                    LOGGER.info("Found EEA for {} in {}", gav, cpEntryPath);
-                    mapping.put(gav, cpEntryPath);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException("Bad line in " + EEA_FOR_GAV_FILENAME + " of " + cpEntryPath + ": " + line, e);
-                }
+            Optional<File> optionalFileOrDirectory = toFile(cpEntryPath);
+            optionalFileOrDirectory.ifPresent(fileOrDirectory -> {
+                getExternalAnnotationMapping(fileOrDirectory).forEach(gav -> mapping.put(gav, cpEntryPath));
             });
         }
         return mapping;
     }
 
-    private List<String> getPath(IPath iPath, String fileName) {
-        Optional<File> optionalFileOrDirectory = toFile(iPath);
-        if (!optionalFileOrDirectory.isPresent()) {
-            return Collections.emptyList();
-        }
-        File fileOrDirectory = optionalFileOrDirectory.get();
+    private List<MavenGAV> getExternalAnnotationMapping(File dependency) {
+        List<String> gavLines = readLines(dependency, EEA_FOR_GAV_FILENAME);
+        List<MavenGAV> result = new ArrayList<>(gavLines.size());
+        gavLines.forEach(line -> {
+            try {
+                MavenGAV gav = MavenGAV.parse(line);
+                LOGGER.info("Found EEA for {} in {}", gav, dependency);
+                result.add(gav);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Bad line in " + EEA_FOR_GAV_FILENAME + " of " + dependency + ": " + line, e);
+            }
+        });
+        return result;
+    }
+
+    private List<String> readLines(File fileOrDirectory, String fileName) {
         Optional<String> fileContent = read(fileOrDirectory, fileName);
         if (fileContent.isPresent()) {
-            return readFileLines(fileContent.get());
+            return readLines(fileContent.get());
         } else {
             return Collections.emptyList();
         }
@@ -189,7 +181,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         }
     }
 
-    private List<String> readFileLines(String string) {
+    private List<String> readLines(String string) {
         return NEWLINE_REGEXP.splitAsStream(string)
                 .map(t -> t.trim())
                 .filter(t -> !t.isEmpty())
@@ -200,57 +192,47 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     @Override
     public void configureRawClasspath(ProjectConfigurationRequest request, IClasspathDescriptor classpath,
             IProgressMonitor monitor) throws CoreException {
-        dump("configureRawClasspath", classpath);
-        String annotationPath = getAnnotationPath(request.getMavenProjectFacade());
+        String annotationPath = getSingleProjectWideAnnotationPath(request.getMavenProjectFacade());
         if (annotationPath != null && !annotationPath.isEmpty()) {
-            for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
-                if (cpEntry.getEntryKind() == IClasspathEntry.CPE_CONTAINER) {
-                    setExternalAnnotationsPath(cpEntry, annotationPath);
-                }
-            }
+            setContainerClasspathExternalAnnotationsPath(classpath, annotationPath, false);
         } else {
-            IProject iProject = request.getProject();
-            // Note that we must use computeDefaultRuntimeClassPath() instead of
-            // classpath.getEntryDescriptors() here, because in this configureRawClasspath(),
-            // contrary to configureClasspath(), we get the JRE & M2E Container, not entries
-            // (but to have the java:java EEA we need all entries)
-            List<IRuntimeClasspathEntry> allEntries = computeDefaultRuntimeClassPath(iProject);
-            List<IPath> classpathEntryPaths = allEntries.stream().map(cpEntry -> cpEntry.getPath()).collect(Collectors.toList());
-            Map<MavenGAV, IPath> mapping = getExternalAnnotationMapping(classpathEntryPaths);
-            // TODO if setJREsEEA worked we could do:
-            //   setJREsEEA(mapping, iProject);
-            // but for now let's just:
-            IPath javaEEAPath = mapping.get(JAVA_GAV);
-            if (javaEEAPath != null) {
-                for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
-                    if (cpEntry.getPath().toString().startsWith("org.eclipse.jdt.launching.JRE_CONTAINER")) {
-                        setExternalAnnotationsPath(cpEntry, javaEEAPath.toString());
+            // Find the JRE's EEA among the dependencies to set it....
+            // Note that at this stage of M2E we have to use the Maven project dependencies,
+            // and cannot rely on the dependencies already being on the IClasspathDescriptor
+            // (that happens in configureClasspath() not here in configureRawClasspath())
+            //
+            final MavenProject mavenProject = request.getMavenProject();
+            for (Dependency dependency : mavenProject.getDependencies()) {
+                // Filter by "*-eea" artifactId naming convention, just for performance
+                if (!dependency.getArtifactId().endsWith("-eea")) {
+                    continue;
+                }
+                Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(),
+                        dependency.getType(), dependency.getClassifier(), mavenProject.getRemoteArtifactRepositories(),
+                        monitor);
+                if (artifact != null && artifact.isResolved()) {
+                    final File eeaProjectOrJarFile = artifact.getFile();
+                    if (getExternalAnnotationMapping(eeaProjectOrJarFile).contains(JAVA_GAV)) {
+                        setContainerClasspathExternalAnnotationsPath(classpath, eeaProjectOrJarFile.toString(), true);
+                        return;
                     }
                 }
             }
         }
     }
 
-    private List<IRuntimeClasspathEntry> computeDefaultRuntimeClassPath(IProject project) throws CoreException {
-        IJavaProject jProject = JavaCore.create(project);
-        if (jProject == null) {
-            Collections.emptyList();
-        }
-        // strongly inspired by org.eclipse.jdt.launching.JavaRuntime.computeDefaultRuntimeClassPath(IJavaProject)
-        IRuntimeClasspathEntry[] unresolved = JavaRuntime.computeUnresolvedRuntimeClasspath(jProject);
-        List<IRuntimeClasspathEntry> resolved = new ArrayList<>(unresolved.length);
-        for (IRuntimeClasspathEntry entry : unresolved) {
-            if (entry.getClasspathProperty() == IRuntimeClasspathEntry.USER_CLASSES) {
-                IRuntimeClasspathEntry[] entries = JavaRuntime.resolveRuntimeClasspathEntry(entry, jProject);
-                for (IRuntimeClasspathEntry entrie : entries) {
-                    resolved.add(entrie);
+    private void setContainerClasspathExternalAnnotationsPath(IClasspathDescriptor classpath, String annotationPath, boolean onlyJRE) {
+        for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
+            if (cpEntry.getEntryKind() == IClasspathEntry.CPE_CONTAINER) {
+                if (onlyJRE && !cpEntry.getPath().toString().startsWith(JRE_CONTAINER)) {
+                    continue;
                 }
+                setExternalAnnotationsPath(cpEntry, annotationPath);
             }
         }
-        return resolved;
     }
 
-    private String getAnnotationPath(IMavenProjectFacade mavenProjectFacade) {
+    private String getSingleProjectWideAnnotationPath(IMavenProjectFacade mavenProjectFacade) {
         if (mavenProjectFacade == null) {
             return null;
         }
@@ -366,22 +348,14 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
     @Override
     public void mavenProjectChanged(MavenProjectChangedEvent event, IProgressMonitor monitor) throws CoreException {
-        String newAnnotationpath = getAnnotationPath(event.getMavenProject());
-        String oldAnnotationpath = getAnnotationPath(event.getOldMavenProject());
+        String newAnnotationpath = getSingleProjectWideAnnotationPath(event.getMavenProject());
+        String oldAnnotationpath = getSingleProjectWideAnnotationPath(event.getOldMavenProject());
         if (newAnnotationpath == oldAnnotationpath
                 || newAnnotationpath != null && newAnnotationpath.equals(oldAnnotationpath)) {
             return;
         }
 
         // TODO : warn the user that the config should be updated in full
-    }
-
-    private void dump(String methodName, IClasspathDescriptor classpath) {
-        if (LOGGER.isDebugEnabled()) {
-            for (IClasspathEntryDescriptor entry : classpath.getEntryDescriptors()) {
-                LOGGER.debug("{}: {} ", methodName, toString(entry));
-            }
-        }
     }
 
     private String toString(IClasspathEntryDescriptor entry) {
