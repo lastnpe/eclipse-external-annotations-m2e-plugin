@@ -213,12 +213,38 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
                 if (artifact != null && artifact.isResolved()) {
                     final File eeaProjectOrJarFile = artifact.getFile();
                     if (getExternalAnnotationMapping(eeaProjectOrJarFile).contains(JAVA_GAV)) {
-                        setContainerClasspathExternalAnnotationsPath(classpath, eeaProjectOrJarFile.toString(), true);
+                        IPath iPath = getProjectPathFromAbsoluteLocationIfPossible(eeaProjectOrJarFile);
+                        setContainerClasspathExternalAnnotationsPath(classpath, iPath.toString(), true);
                         return;
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Attempt to convert an absolute File to a workspace relative project patch.
+     * @param file a File pointing either to a JAR file in the Maven repo, or a project on disk
+     * @return IPath which will either be workspace relative if match found, else same location (absolute)
+     */
+    private IPath getProjectPathFromAbsoluteLocationIfPossible(File file) {
+        Path targetClassesPath = Paths.get("target", "classes");
+        if (file.toPath().endsWith(targetClassesPath)) {
+            file = file.getParentFile().getParentFile();
+        }
+        URI fileURI = file.toURI().normalize();
+        IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+        for (IProject project : projects) {
+            if (!project.isOpen()) {
+                continue;
+            }
+            URI locationURI = project.getLocationURI().normalize();
+            // The follow circus is because of a trailing slash difference:
+            if (Paths.get(locationURI).equals(Paths.get(fileURI))) {
+                return project.getFullPath();
+            }
+        }
+        return org.eclipse.core.runtime.Path.fromOSString(file.getAbsolutePath());
     }
 
     private void setContainerClasspathExternalAnnotationsPath(IClasspathDescriptor classpath, String annotationPath, boolean onlyJRE) {
