@@ -273,6 +273,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         }
         for (Dependency dependency : plugin.getDependencies()) {
             if ("tycho-compiler-jdt".equals(dependency.getArtifactId())) {
+                // Just an optimization to save the unneeded resolve() below
                 continue;
             }
             Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(),
@@ -293,6 +294,9 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             }
         }
 
+        // If we reach here then we haven't been able to use a suitable dependency of maven-compiler-plugin,
+        // so we fall back to trying to use the properties file given in the plugin's configuration:
+        //
         if (!(plugin.getConfiguration() instanceof Xpp3Dom)) {
             return;
         }
