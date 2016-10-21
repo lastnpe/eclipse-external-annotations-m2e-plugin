@@ -5,15 +5,16 @@
       version="1.0.0.qualifier"
       plugin="eclipse-external-annotations-m2e-plugin.core">
 
-   <description>
-      Allows to configure the path to external annotations for the
-Maven Dependencies and JRE containers. 
-The path is taken from the &quot;m2e.jdt.annotationpath&quot; property
-in POM files if it exists.
+   <description url="https://github.com/vorburger/eclipse-external-annotations-m2e-plugin">
+      Integration Eclipse null analysis with Maven:
+
+1. Allows to configure Java Compiler Project Properties from maven-compiler-plugin; read either from a dependency of maven-compiler-plugin containing a org.eclipse.jdt.core.prefs file, or from configuration/compilerArguments/properties.
+
+2. Allows to configure the path to external annotations for the Maven Dependencies and JRE classpath containers.  The path is either taken from the &quot;m2e.jdt.annotationpath&quot; property in POM files, if it exists (this for configuring one single archive of *.eea for ALL Maven dependencies AND the JRE), or by individually associating archives on the projects main (not maven-compiler-plugin) dependencies with classpath entries, based on a eea-for-gav marker file in the *-eea.jar which indicates for which Maven GAV it holds external annotations.
    </description>
 
-   <copyright>
-      Sylvain LAURENT, 2016
+   <copyright url="http://www.example.com/copyright">
+      Sylvain LAURENT &amp; Michael Vorburger.ch, 2016
    </copyright>
 
    <license url="https://www.eclipse.org/org/documents/epl-v10.php">
