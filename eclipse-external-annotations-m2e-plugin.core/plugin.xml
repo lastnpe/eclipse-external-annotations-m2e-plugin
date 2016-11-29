@@ -7,8 +7,8 @@
      <extension
            point="org.eclipse.m2e.core.projectConfigurators">
         <configurator
-              class="ch.sla.eeaplugin.core.configurator.ClasspathConfigurator"
-              id="ch.sla.eeaplugin.core.configurator.ClasspathConfigurator"
+              class="org.lastnpe.m2e.core.configurator.ClasspathConfigurator"
+              id="org.lastnpe.m2e.core.configurator.ClasspathConfigurator"
               runsAfter="org.eclipse.m2e.jdt.javaConfigurator"
               >
         </configurator>
@@ -16,7 +16,7 @@
      <extension
            point="org.eclipse.m2e.core.mavenProjectChangedListeners">
         <listener
-              class="ch.sla.eeaplugin.core.configurator.ClasspathConfigurator">
+              class="org.lastnpe.m2e.core.configurator.ClasspathConfigurator">
         </listener>
      </extension>
 </plugin>

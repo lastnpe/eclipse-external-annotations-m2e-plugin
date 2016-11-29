@@ -5,7 +5,7 @@
       version="1.0.0.qualifier"
       plugin="eclipse-external-annotations-m2e-plugin.core">
 
-   <description url="https://github.com/vorburger/eclipse-external-annotations-m2e-plugin">
+   <description url="https://github.com/lastnpe/eclipse-external-annotations-m2e-plugin">
       Integration Eclipse null analysis with Maven:
 
 1. Allows to configure Java Compiler Project Properties from maven-compiler-plugin; read either from a dependency of maven-compiler-plugin containing a org.eclipse.jdt.core.prefs file, or from configuration/compilerArguments/properties.
