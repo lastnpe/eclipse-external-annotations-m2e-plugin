@@ -4,12 +4,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.github.sylvainlaurent.m2e</groupId>
+    <groupId>org.lastnpe.m2e</groupId>
     <artifactId>eclipse-external-annotations-m2e-plugin</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
 
-  <groupId>com.github.sylvainlaurent.m2e.feature</groupId>
+  <groupId>org.lastnpe.m2e.feature</groupId>
   <artifactId>eclipse_external_annotations_m2e_plugin.feature</artifactId>
   <packaging>eclipse-feature</packaging>
 

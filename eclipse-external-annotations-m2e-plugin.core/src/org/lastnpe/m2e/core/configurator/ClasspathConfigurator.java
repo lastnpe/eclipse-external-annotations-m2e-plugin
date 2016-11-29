@@ -1,4 +1,4 @@
-package ch.sla.eeaplugin.core.configurator;
+package org.lastnpe.m2e.core.configurator;
 
 import java.io.File;
 import java.io.FileInputStream;

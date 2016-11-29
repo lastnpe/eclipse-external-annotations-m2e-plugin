@@ -13,7 +13,7 @@
       </pluginExecutionFilter>
       <action>
         <configurator>
-          <id>ch.sla.eeaplugin.core.configurator.ClasspathConfigurator</id>
+          <id>org.lastnpe.m2e.core.configurator.ClasspathConfigurator</id>
           <runOnIncremental>false</runOnIncremental>
           <runOnConfiguration>true</runOnConfiguration>
         </configurator>
