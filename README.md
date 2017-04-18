@@ -18,3 +18,4 @@ Configures the path to Eclipse external annotations for null analysis on the Mav
 see usage examples in [lastnpe/eclipse-null-eea-augments/examples/](https://github.com/lastnpe/eclipse-null-eea-augments/tree/master/examples/maven) (or [sylvainlaurent/null-pointer-analysis-examples](https://github.com/sylvainlaurent/null-pointer-analysis-examples/tree/master/with-external-annotations) for the older single EEA approach).
 
 see also http://lastnpe.org
+
