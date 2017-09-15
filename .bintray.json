@@ -10,8 +10,8 @@
     },
     "files": [
         {
-            "includePattern": "eclipse-external-annotations-m2e-plugin.site/target/repository/(.*)",
-            "uploadPattern": "$1",
+            "includePattern": "eclipse-external-annotations-m2e-plugin.site/target/repository(.*)*/(.*)",
+            "uploadPattern": "$2",
             "matrixParams": {
                 "override": 1
             }
