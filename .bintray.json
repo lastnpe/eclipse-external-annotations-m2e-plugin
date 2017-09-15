@@ -1,0 +1,21 @@
+{
+    "package": {
+        "repo": "lastnpe.org",
+        "name": "eclipse-external-annotations-m2e-plugin",
+        "subject": "vorburger"
+    },
+    "version": {
+        "name": "master",
+        "gpgSign": false
+    },
+    "files": [
+        {
+            "includePattern": "eclipse-external-annotations-m2e-plugin.site/target/repository/(.*)",
+            "uploadPattern": "$1",
+            "matrixParams": {
+                "override": 1
+            }
+        }
+    ],
+    "publish": true
+}

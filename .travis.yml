@@ -10,3 +10,14 @@ cache:
   directories:
   - $HOME/.m2
   - .mvn
+
+# https://docs.travis-ci.com/user/deployment/bintray/
+deploy:
+  provider: bintray
+  file: "./.bintray.json"
+  user: vorburger
+  key:
+    secure: bA70YYw/NJLSQ+yHLxUcW4G7zBIgWmH0ZLTTVYMw+2w6kRlpkFtBQ7apvorj0HeJPJK71ZsbijLCePrE3FhlMtUX2yZHX6KdeqvRrxmRjGjdANBcWq1QTPB4XUh3FYyTviDJW5H9CU6YLOp0vJCxeEdp8wpOMAZkstt8n7w0jQ3PCVwgpxmLfDS2as/Wc/3LrAIH2vBFmHsZnlQxWep/CLzXk23BAUxXaR2kuHe0gnCAAUvfCqufHPbRs5aaThM01pgjwzMihj8+Uupn0GWAA0w0MDwT5K4+oHHNRLj5DsT0LMqkMacjmEDZtp7dwViMQ40w/RsdjQTg8BNbVMb0w2XBXhJh1BObNwC7Q04pnEKh5A0TBuHUchauLe/b33iCZvnAQC6o33VcxY79hGFTDlpicw7gU6cAXsoDX+TIc4+DL94pGRsgvH49wnc6aLLL641P7fXz2hrvsZLl346OqOIBUNnvnqCgFLy2OmHYrN0xE++rW7lE1O9yrMyAoKHDEY1sls7vPzyHAXqrtDEjyFClsjKnoEtmO3SunLjGQWiETwjGWKm5uXeHpQULG/8Z0NmyccUtu8TGZk2NgxTNJkL7X2k8XMsFjVlCb/ZNijPSpM0bxwDt16HiyAWf9l4anxXpdHK9hEIy6yzAJWt3cdSbPaeuI68Rv+ZEfcRNShY=
+# TODO Remove temporary for testing only: Deploy not just master but all branches
+  on:
+    all_branches: true
