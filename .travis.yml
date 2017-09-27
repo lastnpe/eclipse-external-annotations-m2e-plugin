@@ -10,3 +10,13 @@ cache:
   directories:
   - $HOME/.m2
   - .mvn
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
+  local_dir: eclipse-external-annotations-m2e-plugin.site/target/repository
+  repo: lastnpe/eclipse-external-annotations-m2e-plugin-p2-site
+  target_branch: master
+  on:
+    branch: master
