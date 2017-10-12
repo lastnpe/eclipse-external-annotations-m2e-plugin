@@ -10,7 +10,7 @@
   </parent>
 
 
-  <artifactId>eclipse-external-annotations-m2e-plugin.site</artifactId>
+  <artifactId>site</artifactId>
   <packaging>eclipse-repository</packaging>
 
 </project>

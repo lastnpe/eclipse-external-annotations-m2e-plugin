@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: Maven Integration for Eclipse Settings
-Bundle-SymbolicName: eclipse-external-annotations-m2e-plugin.core;singleton:=true
+Bundle-Name: eclipse-external-annotations-m2e-plugin
+Bundle-SymbolicName: org.lastnpe.m2e.core;singleton:=true
 Bundle-Version: 1.0.0.qualifier
-Bundle-Vendor: Sylvain LAURENT & Michael Vorburger.ch
+Bundle-Vendor: lastnpe.org
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.jdt.core,
  org.eclipse.m2e.maven.runtime;bundle-version="[1.6.0,1.9.0)",
