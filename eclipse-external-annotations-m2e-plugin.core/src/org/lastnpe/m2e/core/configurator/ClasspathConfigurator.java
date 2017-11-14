@@ -1,3 +1,4 @@
+
 package org.lastnpe.m2e.core.configurator;
 
 import java.io.File;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Plugin;
@@ -64,33 +66,33 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     private final static Logger LOGGER = LoggerFactory.getLogger(ClasspathConfigurator.class);
 
     @Override
-    public void configureClasspath(IMavenProjectFacade mavenProjectFacade, IClasspathDescriptor classpath,
-            IProgressMonitor monitor) throws CoreException {
-        List<IPath> classpathEntryPaths = classpath.getEntryDescriptors().stream().map(cpEntry -> cpEntry.getPath()).collect(Collectors.toList());
-        Map<MavenGAV, IPath> mapping = getExternalAnnotationMapping(classpathEntryPaths);
-        for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
-            mapping.entrySet().stream()
-                .filter(e -> e.getKey().matches(cpEntry.getArtifactKey())).findFirst()
-                .ifPresent(e -> {
-                    setExternalAnnotationsPath(cpEntry, e.getValue().toString());
-                 });
+    public void configureClasspath(final IMavenProjectFacade mavenProjectFacade, final IClasspathDescriptor classpath,
+            final IProgressMonitor monitor) throws CoreException {
+        final List<IPath> classpathEntryPaths = classpath.getEntryDescriptors().stream()
+                .map(cpEntry -> cpEntry.getPath()).collect(Collectors.toList());
+        final Map<MavenGAV, IPath> mapping = getExternalAnnotationMapping(classpathEntryPaths);
+        for (final IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
+            mapping.entrySet().stream().filter(e -> e.getKey().matches(cpEntry.getArtifactKey())).findFirst()
+                    .ifPresent(e -> {
+                        setExternalAnnotationsPath(cpEntry, e.getValue().toString());
+                    });
         }
         // Do *NOT* configure the JRE's EEA here, but in configureRawClasspath(),
         // because it's the wrong time for M2E (and will break project import,
         // when the IProject doesn't fully exist in JDT yet at this stage).
     }
 
-    private void setExternalAnnotationsPath(IClasspathEntryDescriptor cpEntry, String path) {
+    private void setExternalAnnotationsPath(final IClasspathEntryDescriptor cpEntry, final String path) {
         cpEntry.setClasspathAttribute("annotationpath", path);
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Setting External Annotations of {} to {}", toString(cpEntry), path);
         }
     }
 
-    private Map<MavenGAV, IPath> getExternalAnnotationMapping(List<IPath> classpathEntryPaths) {
-        Map<MavenGAV, IPath> mapping = new HashMap<>();
-        for (IPath cpEntryPath : classpathEntryPaths) {
-            Optional<File> optionalFileOrDirectory = toFile(cpEntryPath);
+    private Map<MavenGAV, IPath> getExternalAnnotationMapping(final List<IPath> classpathEntryPaths) {
+        final Map<MavenGAV, IPath> mapping = new HashMap<>();
+        for (final IPath cpEntryPath : classpathEntryPaths) {
+            final Optional<File> optionalFileOrDirectory = toFile(cpEntryPath);
             optionalFileOrDirectory.ifPresent(fileOrDirectory -> {
                 getExternalAnnotationMapping(fileOrDirectory).forEach(gav -> mapping.put(gav, cpEntryPath));
             });
@@ -98,23 +100,24 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         return mapping;
     }
 
-    private List<MavenGAV> getExternalAnnotationMapping(File dependency) {
-        List<String> gavLines = readLines(dependency, EEA_FOR_GAV_FILENAME);
-        List<MavenGAV> result = new ArrayList<>(gavLines.size());
+    private List<MavenGAV> getExternalAnnotationMapping(final File dependency) {
+        final List<String> gavLines = readLines(dependency, EEA_FOR_GAV_FILENAME);
+        final List<MavenGAV> result = new ArrayList<>(gavLines.size());
         gavLines.forEach(line -> {
             try {
-                MavenGAV gav = MavenGAV.parse(line);
+                final MavenGAV gav = MavenGAV.parse(line);
                 LOGGER.info("Found EEA for {} in {}", gav, dependency);
                 result.add(gav);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Bad line in " + EEA_FOR_GAV_FILENAME + " of " + dependency + ": " + line, e);
+            } catch (final IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "Bad line in " + EEA_FOR_GAV_FILENAME + " of " + dependency + ": " + line, e);
             }
         });
         return result;
     }
 
-    private List<String> readLines(File fileOrDirectory, String fileName) {
-        Optional<String> fileContent = read(fileOrDirectory, fileName);
+    private List<String> readLines(final File fileOrDirectory, final String fileName) {
+        final Optional<String> fileContent = read(fileOrDirectory, fileName);
         if (fileContent.isPresent()) {
             return readLines(fileContent.get());
         } else {
@@ -122,14 +125,14 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         }
     }
 
-    private Optional<File> toFile(IPath iPath) {
+    private Optional<File> toFile(final IPath iPath) {
         // iPath.toFile() is NOT what we want..
         // https://wiki.eclipse.org/FAQ_What_is_the_difference_between_a_path_and_a_location%3F
-        IWorkspace workspace = ResourcesPlugin.getWorkspace();
-        IWorkspaceRoot root = workspace.getRoot();
-        IResource resource = root.findMember(iPath);
+        final IWorkspace workspace = ResourcesPlugin.getWorkspace();
+        final IWorkspaceRoot root = workspace.getRoot();
+        final IResource resource = root.findMember(iPath);
         if (resource != null) {
-            IPath location = resource.getLocation();
+            final IPath location = resource.getLocation();
             return Optional.ofNullable(location.toFile());
         } else {
             // In this case iPath likely was an absolute FS / non-WS path to being with (or a closed project), so try:
@@ -139,25 +142,26 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
     /**
      * Reads content of a name file from either inside a JAR or a directory
+     * 
      * @param fileOrDirectory either a ZIP/JAR file, or a directory
      * @param fileName file to look for in that ZIP/JAR file or directory
      * @return content of file, if any
      */
-    private Optional<String> read(File fileOrDirectory, String fileName) {
+    private Optional<String> read(final File fileOrDirectory, final String fileName) {
         if (!fileOrDirectory.exists()) {
             LOGGER.error("File does not exist: {}", fileOrDirectory);
             return Optional.empty();
         }
         if (fileOrDirectory.isDirectory()) {
-            File file = new File(fileOrDirectory, fileName);
+            final File file = new File(fileOrDirectory, fileName);
             return readFile(file.toPath());
         } else if (fileOrDirectory.isFile()) {
-            Path jarFilePath = Paths.get(fileOrDirectory.toURI());
-            URI jarEntryURI = URI.create("jar:file:" + jarFilePath.toUri().getPath() + "!/" + fileName);
+            final Path jarFilePath = Paths.get(fileOrDirectory.toURI());
+            final URI jarEntryURI = URI.create("jar:file:" + jarFilePath.toUri().getPath() + "!/" + fileName);
             try (FileSystem zipfs = FileSystems.newFileSystem(jarEntryURI, Collections.emptyMap())) {
-                Path jarEntryPath = Paths.get(jarEntryURI);
+                final Path jarEntryPath = Paths.get(jarEntryURI);
                 return readFile(jarEntryPath);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 LOGGER.error("IOException from ZipFileSystemProvider for: {}", jarEntryURI, e);
                 return Optional.empty();
             }
@@ -168,31 +172,28 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
     }
 
-    private Optional<String> readFile(Path path) {
+    private Optional<String> readFile(final Path path) {
         try {
             if (Files.exists(path)) {
                 return Optional.of(new String(Files.readAllBytes(path), Charset.forName("UTF-8")));
             } else {
                 return Optional.empty();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("IOException from Files.readAllBytes for: {}", path, e);
             return Optional.empty();
         }
     }
 
-    private List<String> readLines(String string) {
-        return NEWLINE_REGEXP.splitAsStream(string)
-                .map(t -> t.trim())
-                .filter(t -> !t.isEmpty())
-                .filter(t -> !t.startsWith("#"))
-                .collect(Collectors.toList());
+    private List<String> readLines(final String string) {
+        return NEWLINE_REGEXP.splitAsStream(string).map(t -> t.trim()).filter(t -> !t.isEmpty())
+                .filter(t -> !t.startsWith("#")).collect(Collectors.toList());
     }
 
     @Override
-    public void configureRawClasspath(ProjectConfigurationRequest request, IClasspathDescriptor classpath,
-            IProgressMonitor monitor) throws CoreException {
-        String annotationPath = getSingleProjectWideAnnotationPath(request.getMavenProjectFacade());
+    public void configureRawClasspath(final ProjectConfigurationRequest request, final IClasspathDescriptor classpath,
+            final IProgressMonitor monitor) throws CoreException {
+        final String annotationPath = getSingleProjectWideAnnotationPath(request.getMavenProjectFacade());
         if (annotationPath != null && !annotationPath.isEmpty()) {
             setContainerClasspathExternalAnnotationsPath(classpath, annotationPath, false);
         } else {
@@ -202,18 +203,18 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             // (that happens in configureClasspath() not here in configureRawClasspath())
             //
             final MavenProject mavenProject = request.getMavenProject();
-            for (Dependency dependency : mavenProject.getDependencies()) {
+            for (final Dependency dependency : mavenProject.getDependencies()) {
                 // Filter by "*-eea" artifactId naming convention, just for performance
                 if (!dependency.getArtifactId().endsWith("-eea")) {
                     continue;
                 }
-                Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(),
-                        dependency.getType(), dependency.getClassifier(), mavenProject.getRemoteArtifactRepositories(),
-                        monitor);
+                final Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(),
+                        dependency.getVersion(), dependency.getType(), dependency.getClassifier(),
+                        mavenProject.getRemoteArtifactRepositories(), monitor);
                 if (artifact != null && artifact.isResolved()) {
                     final File eeaProjectOrJarFile = artifact.getFile();
                     if (getExternalAnnotationMapping(eeaProjectOrJarFile).contains(JAVA_GAV)) {
-                        IPath iPath = getProjectPathFromAbsoluteLocationIfPossible(eeaProjectOrJarFile);
+                        final IPath iPath = getProjectPathFromAbsoluteLocationIfPossible(eeaProjectOrJarFile);
                         setContainerClasspathExternalAnnotationsPath(classpath, iPath.toString(), true);
                         return;
                     }
@@ -224,21 +225,22 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
     /**
      * Attempt to convert an absolute File to a workspace relative project patch.
+     * 
      * @param file a File pointing either to a JAR file in the Maven repo, or a project on disk
      * @return IPath which will either be workspace relative if match found, else same location (absolute)
      */
     private IPath getProjectPathFromAbsoluteLocationIfPossible(File file) {
-        Path targetClassesPath = Paths.get("target", "classes");
+        final Path targetClassesPath = Paths.get("target", "classes");
         if (file.toPath().endsWith(targetClassesPath)) {
             file = file.getParentFile().getParentFile();
         }
-        URI fileURI = file.toURI().normalize();
-        IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
-        for (IProject project : projects) {
+        final URI fileURI = file.toURI().normalize();
+        final IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+        for (final IProject project : projects) {
             if (!project.isOpen()) {
                 continue;
             }
-            URI locationURI = project.getLocationURI().normalize();
+            final URI locationURI = project.getLocationURI().normalize();
             // The follow circus is because of a trailing slash difference:
             if (Paths.get(locationURI).equals(Paths.get(fileURI))) {
                 return project.getFullPath();
@@ -247,8 +249,9 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         return org.eclipse.core.runtime.Path.fromOSString(file.getAbsolutePath());
     }
 
-    private void setContainerClasspathExternalAnnotationsPath(IClasspathDescriptor classpath, String annotationPath, boolean onlyJRE) {
-        for (IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
+    private void setContainerClasspathExternalAnnotationsPath(final IClasspathDescriptor classpath,
+            final String annotationPath, final boolean onlyJRE) {
+        for (final IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
             if (cpEntry.getEntryKind() == IClasspathEntry.CPE_CONTAINER) {
                 if (onlyJRE && !cpEntry.getPath().toString().startsWith(JRE_CONTAINER)) {
                     continue;
@@ -258,19 +261,19 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         }
     }
 
-    private String getSingleProjectWideAnnotationPath(IMavenProjectFacade mavenProjectFacade) {
+    private String getSingleProjectWideAnnotationPath(final IMavenProjectFacade mavenProjectFacade) {
         if (mavenProjectFacade == null) {
             return null;
         }
-        MavenProject mavenProject = mavenProjectFacade.getMavenProject();
+        final MavenProject mavenProject = mavenProjectFacade.getMavenProject();
         if (mavenProject == null) {
             return null;
         }
-        Properties properties = mavenProject.getProperties();
+        final Properties properties = mavenProject.getProperties();
         if (properties == null) {
             return null;
         }
-        String property = properties.getProperty(M2E_JDT_ANNOTATIONPATH);
+        final String property = properties.getProperty(M2E_JDT_ANNOTATIONPATH);
         if (property == null) {
             return null;
         } else {
@@ -281,39 +284,43 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     /**
      * Configure Project's JDT Compiler Properties. First attempts to read
      * a file named "org.eclipse.jdt.core.prefs" stored in a dependency of the
-     * maven-compiler-plugin.  If none found, copy the properties read from the
+     * maven-compiler-plugin. If none found, copy the properties read from the
      * maven-compiler-plugin configuration compilerArguments properties.
      *
-     * <p>The reason we support (and give preference to) a dependency over the
+     * <p>
+     * The reason we support (and give preference to) a dependency over the
      * properties from the compilerArguments configuration is that the latter
      * requires the file to be at the given location, which it may not (yet) be;
      * for the build this is typically based e.g. on a maven-dependency-plugin
      * unpack - which may not have run, yet.
      */
     @Override
-    public void configure(ProjectConfigurationRequest projectConfigurationRequest, IProgressMonitor monitor) throws CoreException {
+    public void configure(final ProjectConfigurationRequest projectConfigurationRequest, final IProgressMonitor monitor)
+            throws CoreException {
         final MavenProject mavenProject = projectConfigurationRequest.getMavenProject();
         final Plugin plugin = mavenProject.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
         if (plugin == null) {
             return;
         }
-        for (Dependency dependency : plugin.getDependencies()) {
+        for (final Dependency dependency : plugin.getDependencies()) {
             if ("tycho-compiler-jdt".equals(dependency.getArtifactId())) {
                 // Just an optimization to save the unneeded resolve() below
                 continue;
             }
-            Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(),
-                    dependency.getType(), dependency.getClassifier(), mavenProject.getRemoteArtifactRepositories(),
-                    monitor);
+            final Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(),
+                    dependency.getVersion(), dependency.getType(), dependency.getClassifier(),
+                    mavenProject.getRemoteArtifactRepositories(), monitor);
             if (artifact != null && artifact.isResolved()) {
-                Optional<String> optionalPropertiesAsText = read(artifact.getFile(), "org.eclipse.jdt.core.prefs");
+                final Optional<String> optionalPropertiesAsText = read(artifact.getFile(),
+                        "org.eclipse.jdt.core.prefs");
                 optionalPropertiesAsText.ifPresent(propertiesAsText -> {
-                    Properties configurationCompilerArgumentsProperties = new Properties();
+                    final Properties configurationCompilerArgumentsProperties = new Properties();
                     try {
                         configurationCompilerArgumentsProperties.load(new StringReader(propertiesAsText));
-                        configureProjectFromProperties(projectConfigurationRequest.getProject(), configurationCompilerArgumentsProperties);
+                        configureProjectFromProperties(projectConfigurationRequest.getProject(),
+                                configurationCompilerArgumentsProperties);
                         return;
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         LOGGER.error("IOException while reading properties: {}", propertiesAsText, e);
                     }
                 });
@@ -326,21 +333,21 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         if (!(plugin.getConfiguration() instanceof Xpp3Dom)) {
             return;
         }
-        Xpp3Dom configurationDom = (Xpp3Dom) plugin.getConfiguration();
+        final Xpp3Dom configurationDom = (Xpp3Dom) plugin.getConfiguration();
         if (configurationDom == null) {
             return;
         }
-        Xpp3Dom compilerArgumentsDom = configurationDom.getChild("compilerArguments");
+        final Xpp3Dom compilerArgumentsDom = configurationDom.getChild("compilerArguments");
         if (compilerArgumentsDom == null) {
             return;
         }
-        Xpp3Dom propertiesDom = compilerArgumentsDom.getChild("properties");
-        String configurationCompilerArgumentsPropertiesPath = propertiesDom.getValue();
+        final Xpp3Dom propertiesDom = compilerArgumentsDom.getChild("properties");
+        final String configurationCompilerArgumentsPropertiesPath = propertiesDom.getValue();
         if (configurationCompilerArgumentsPropertiesPath == null) {
             return;
         }
 
-        File configurationCompilerArgumentsFile = new File(configurationCompilerArgumentsPropertiesPath);
+        final File configurationCompilerArgumentsFile = new File(configurationCompilerArgumentsPropertiesPath);
         if (!configurationCompilerArgumentsFile.exists()) {
             return;
         }
@@ -349,20 +356,22 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         }
 
         try (FileInputStream inputStream = new FileInputStream(configurationCompilerArgumentsFile)) {
-            Properties configurationCompilerArgumentsProperties = new Properties();
+            final Properties configurationCompilerArgumentsProperties = new Properties();
             configurationCompilerArgumentsProperties.load(inputStream);
-            configureProjectFromProperties(projectConfigurationRequest.getProject(), configurationCompilerArgumentsProperties);
+            configureProjectFromProperties(projectConfigurationRequest.getProject(),
+                    configurationCompilerArgumentsProperties);
             return;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("IOException while reading file: {}", configurationCompilerArgumentsFile, e);
         }
     }
 
-    private void configureProjectFromProperties(IProject project, Properties configurationCompilerArgumentsProperties) {
+    private void configureProjectFromProperties(final IProject project,
+            final Properties configurationCompilerArgumentsProperties) {
         if (configurationCompilerArgumentsProperties.isEmpty()) {
             return;
         }
-        IJavaProject javaProject = JavaCore.create(project);
+        final IJavaProject javaProject = JavaCore.create(project);
         if (javaProject == null) {
             return;
         }
@@ -370,16 +379,17 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private Map<String, String> fromProperties(Properties properties) {
-        Map configurationCompilerArgumentsPropertiesAsMap = properties;
-        Map<String, String> map = new HashMap<String, String>(configurationCompilerArgumentsPropertiesAsMap);
+    private Map<String, String> fromProperties(final Properties properties) {
+        final Map configurationCompilerArgumentsPropertiesAsMap = properties;
+        final Map<String, String> map = new HashMap<String, String>(configurationCompilerArgumentsPropertiesAsMap);
         return map;
     }
 
     @Override
-    public void mavenProjectChanged(MavenProjectChangedEvent event, IProgressMonitor monitor) throws CoreException {
-        String newAnnotationpath = getSingleProjectWideAnnotationPath(event.getMavenProject());
-        String oldAnnotationpath = getSingleProjectWideAnnotationPath(event.getOldMavenProject());
+    public void mavenProjectChanged(final MavenProjectChangedEvent event, final IProgressMonitor monitor)
+            throws CoreException {
+        final String newAnnotationpath = getSingleProjectWideAnnotationPath(event.getMavenProject());
+        final String oldAnnotationpath = getSingleProjectWideAnnotationPath(event.getOldMavenProject());
         if (newAnnotationpath == oldAnnotationpath
                 || newAnnotationpath != null && newAnnotationpath.equals(oldAnnotationpath)) {
             return;
@@ -388,8 +398,8 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         // TODO : warn the user that the config should be updated in full
     }
 
-    private String toString(IClasspathEntryDescriptor entry) {
-        StringBuilder sb = new StringBuilder("IClasspathEntryDescriptor[");
+    private String toString(final IClasspathEntryDescriptor entry) {
+        final StringBuilder sb = new StringBuilder("IClasspathEntryDescriptor[");
         if (entry.getArtifactKey() != null) {
             sb.append(entry.getArtifactKey().toString()).append(" - ");
         }
