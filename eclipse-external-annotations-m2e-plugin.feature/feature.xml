@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
-      id="eclipse_external_annotations_m2e_plugin.feature"
+      id="org.lastnpe.m2e.feature"
       label="eclipse-external-annotations-m2e-plugin"
       version="1.0.0.qualifier"
-      plugin="eclipse-external-annotations-m2e-plugin.core">
+      provider-name="lastnpe.org"
+      plugin="org.lastnpe.m2e.core">
 
    <description url="https://github.com/lastnpe/eclipse-external-annotations-m2e-plugin">
       Integration Eclipse null analysis with Maven:
@@ -14,7 +15,7 @@
    </description>
 
    <copyright url="http://www.example.com/copyright">
-      Sylvain LAURENT &amp; Michael Vorburger.ch, 2016
+      lastnpe.org
    </copyright>
 
    <license url="https://www.eclipse.org/org/documents/epl-v10.php">
@@ -242,7 +243,7 @@ any resulting litigation.
    </requires>
 
    <plugin
-         id="eclipse-external-annotations-m2e-plugin.core"
+         id="org.lastnpe.m2e.core"
          download-size="0"
          install-size="0"
          version="0.0.0"

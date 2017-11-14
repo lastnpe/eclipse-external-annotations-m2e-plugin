@@ -9,8 +9,7 @@
     <version>1.0.0-SNAPSHOT</version>
   </parent>
 
-  <groupId>org.lastnpe.m2e.feature</groupId>
-  <artifactId>eclipse_external_annotations_m2e_plugin.feature</artifactId>
+  <artifactId>org.lastnpe.m2e.feature</artifactId>
   <packaging>eclipse-feature</packaging>
 
   <build>

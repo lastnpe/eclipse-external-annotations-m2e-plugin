@@ -9,7 +9,7 @@
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>eclipse-external-annotations-m2e-plugin.core</artifactId>
+	<artifactId>org.lastnpe.m2e.core</artifactId>
 	<packaging>eclipse-plugin</packaging>
 
 
