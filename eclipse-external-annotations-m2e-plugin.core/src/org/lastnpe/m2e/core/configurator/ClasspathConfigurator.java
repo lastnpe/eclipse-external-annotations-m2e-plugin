@@ -58,10 +58,23 @@ import org.slf4j.LoggerFactory;
 public class ClasspathConfigurator extends AbstractProjectConfigurator implements IJavaProjectConfigurator {
 
     private static final Pattern NEWLINE_REGEXP = Pattern.compile("\\n");
-    private static final String JRE_CONTAINER = "org.eclipse.jdt.launching.JRE_CONTAINER";
     private static final MavenGAV JAVA_GAV = MavenGAV.of("java", "java");
     private static final String EEA_FOR_GAV_FILENAME = "eea-for-gav";
+
+    /*
+     * Classpath
+     */
+    private static final String JRE_CONTAINER = "org.eclipse.jdt.launching.JRE_CONTAINER";
+    private static final String MAVEN_CLASSPATH_CONTAINER = "org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER";
+    private static final String PDE_REQUIRED_PLUGINS = "org.eclipse.pde.core.requiredPlugins";
+
+    /*
+     * Maven properties
+     */
     private static final String M2E_JDT_ANNOTATIONPATH = "m2e.jdt.annotationpath";
+    private static final String M2E_EEA_ANNOTATIONPATH_JRE = "m2e.eea.annotationpath.jre";
+    private static final String M2E_EEA_ANNOTATIONPATH_MVN = "m2e.eea.annotationpath.maven";
+    private static final String M2E_EEA_ANNOTATIONPATH_PDE = "m2e.eea.annotationpath.pde";
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ClasspathConfigurator.class);
 
@@ -142,7 +155,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
     /**
      * Reads content of a name file from either inside a JAR or a directory
-     * 
+     *
      * @param fileOrDirectory either a ZIP/JAR file, or a directory
      * @param fileName file to look for in that ZIP/JAR file or directory
      * @return content of file, if any
@@ -193,31 +206,58 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     @Override
     public void configureRawClasspath(final ProjectConfigurationRequest request, final IClasspathDescriptor classpath,
             final IProgressMonitor monitor) throws CoreException {
-        final String annotationPath = getSingleProjectWideAnnotationPath(request.getMavenProjectFacade());
-        if (annotationPath != null && !annotationPath.isEmpty()) {
-            setContainerClasspathExternalAnnotationsPath(classpath, annotationPath, false);
-        } else {
-            // Find the JRE's EEA among the dependencies to set it....
-            // Note that at this stage of M2E we have to use the Maven project dependencies,
-            // and cannot rely on the dependencies already being on the IClasspathDescriptor
-            // (that happens in configureClasspath() not here in configureRawClasspath())
-            //
-            final MavenProject mavenProject = request.getMavenProject();
-            for (final Dependency dependency : mavenProject.getDependencies()) {
-                // Filter by "*-eea" artifactId naming convention, just for performance
-                if (!dependency.getArtifactId().endsWith("-eea")) {
-                    continue;
-                }
-                final Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(),
-                        dependency.getVersion(), dependency.getType(), dependency.getClassifier(),
-                        mavenProject.getRemoteArtifactRepositories(), monitor);
-                if (artifact != null && artifact.isResolved()) {
-                    final File eeaProjectOrJarFile = artifact.getFile();
-                    if (getExternalAnnotationMapping(eeaProjectOrJarFile).contains(JAVA_GAV)) {
-                        final IPath iPath = getProjectPathFromAbsoluteLocationIfPossible(eeaProjectOrJarFile);
-                        setContainerClasspathExternalAnnotationsPath(classpath, iPath.toString(), true);
-                        return;
-                    }
+        final IMavenProjectFacade mavenProjectFacade = request.getMavenProjectFacade();
+
+        /*
+         * First check for the property for one global path for all classpaths.
+         */
+
+        if (setContainerClasspathEeaPath(classpath, mavenProjectFacade, M2E_JDT_ANNOTATIONPATH, Optional.empty())) {
+            return;
+        }
+
+        /*
+         * If the above has not been set, check if there are properties for specific classpaths.
+         */
+
+        boolean hasProp = false;
+        hasProp |= setContainerClasspathEeaPath(classpath, mavenProjectFacade, M2E_EEA_ANNOTATIONPATH_JRE,
+                Optional.of(JRE_CONTAINER));
+        hasProp |= setContainerClasspathEeaPath(classpath, mavenProjectFacade, M2E_EEA_ANNOTATIONPATH_MVN,
+                Optional.of(MAVEN_CLASSPATH_CONTAINER));
+        hasProp |= setContainerClasspathEeaPath(classpath, mavenProjectFacade, M2E_EEA_ANNOTATIONPATH_PDE,
+                Optional.of(PDE_REQUIRED_PLUGINS));
+        if (hasProp) {
+            return;
+        }
+
+        /*
+         * If the above has not been set, check the dependencies.
+         */
+
+        // Find the JRE's EEA among the dependencies to set it....
+        // Note that at this stage of M2E we have to use the Maven project dependencies,
+        // and cannot rely on the dependencies already being on the IClasspathDescriptor
+        // (that happens in configureClasspath() not here in configureRawClasspath())
+        //
+
+        final Optional<String> cpe = Optional.of(JRE_CONTAINER);
+
+        final MavenProject mavenProject = request.getMavenProject();
+        for (final Dependency dependency : mavenProject.getDependencies()) {
+            // Filter by "*-eea" artifactId naming convention, just for performance
+            if (!dependency.getArtifactId().endsWith("-eea")) {
+                continue;
+            }
+            final Artifact artifact = maven.resolve(dependency.getGroupId(), dependency.getArtifactId(),
+                    dependency.getVersion(), dependency.getType(), dependency.getClassifier(),
+                    mavenProject.getRemoteArtifactRepositories(), monitor);
+            if (artifact != null && artifact.isResolved()) {
+                final File eeaProjectOrJarFile = artifact.getFile();
+                if (getExternalAnnotationMapping(eeaProjectOrJarFile).contains(JAVA_GAV)) {
+                    final IPath iPath = getProjectPathFromAbsoluteLocationIfPossible(eeaProjectOrJarFile);
+                    setContainerClasspathExternalAnnotationsPath(classpath, iPath.toString(), cpe);
+                    return;
                 }
             }
         }
@@ -225,7 +265,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
     /**
      * Attempt to convert an absolute File to a workspace relative project patch.
-     * 
+     *
      * @param file a File pointing either to a JAR file in the Maven repo, or a project on disk
      * @return IPath which will either be workspace relative if match found, else same location (absolute)
      */
@@ -249,19 +289,47 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         return org.eclipse.core.runtime.Path.fromOSString(file.getAbsolutePath());
     }
 
+    private boolean setContainerClasspathEeaPath(final IClasspathDescriptor classpath,
+            final IMavenProjectFacade mavenProjectFacade, final String mavenPropertyName,
+            final Optional<String> startsWith) {
+        final String annotationPath = getSingleProjectWideAnnotationPath(mavenProjectFacade, mavenPropertyName);
+        if (annotationPath != null && !annotationPath.isEmpty()) {
+            setContainerClasspathExternalAnnotationsPath(classpath, annotationPath, startsWith);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Set classpath for external annotations.
+     *
+     * @param classpath the classpath
+     * @param annotationPath the path of the annotation
+     * @param startsWith if present the annotation path if added only if the classpath entry starts with the given
+     *            prefix, if empty it is added to every classpath entry
+     */
     private void setContainerClasspathExternalAnnotationsPath(final IClasspathDescriptor classpath,
-            final String annotationPath, final boolean onlyJRE) {
+            final String annotationPath, final Optional<String> startsWith) {
         for (final IClasspathEntryDescriptor cpEntry : classpath.getEntryDescriptors()) {
             if (cpEntry.getEntryKind() == IClasspathEntry.CPE_CONTAINER) {
-                if (onlyJRE && !cpEntry.getPath().toString().startsWith(JRE_CONTAINER)) {
-                    continue;
+                if (startsWith.isPresent()) {
+                    if (cpEntry.getPath().toString().startsWith(startsWith.get())) {
+                        setExternalAnnotationsPath(cpEntry, annotationPath);
+                    }
+                } else {
+                    setExternalAnnotationsPath(cpEntry, annotationPath);
                 }
-                setExternalAnnotationsPath(cpEntry, annotationPath);
             }
         }
     }
 
     private String getSingleProjectWideAnnotationPath(final IMavenProjectFacade mavenProjectFacade) {
+        return getSingleProjectWideAnnotationPath(mavenProjectFacade, M2E_JDT_ANNOTATIONPATH);
+    }
+
+    private String getSingleProjectWideAnnotationPath(final IMavenProjectFacade mavenProjectFacade,
+            final String propertyName) {
         if (mavenProjectFacade == null) {
             return null;
         }
@@ -273,7 +341,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         if (properties == null) {
             return null;
         }
-        final String property = properties.getProperty(M2E_JDT_ANNOTATIONPATH);
+        final String property = properties.getProperty(propertyName);
         if (property == null) {
             return null;
         } else {
