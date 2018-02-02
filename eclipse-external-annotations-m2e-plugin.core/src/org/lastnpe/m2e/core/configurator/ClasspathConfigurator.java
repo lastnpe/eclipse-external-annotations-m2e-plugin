@@ -1,4 +1,3 @@
-
 package org.lastnpe.m2e.core.configurator;
 
 import java.io.File;
@@ -410,6 +409,9 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             return;
         }
         final Xpp3Dom propertiesDom = compilerArgumentsDom.getChild("properties");
+        if (propertiesDom == null) {
+            return;
+        }
         final String configurationCompilerArgumentsPropertiesPath = propertiesDom.getValue();
         if (configurationCompilerArgumentsPropertiesPath == null) {
             return;
