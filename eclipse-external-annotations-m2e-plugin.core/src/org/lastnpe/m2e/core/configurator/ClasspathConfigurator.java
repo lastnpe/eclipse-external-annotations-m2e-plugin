@@ -263,7 +263,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     }
 
     /**
-     * Attempt to convert an absolute File to a workspace relative project patch.
+     * Attempt to convert an absolute File to a workspace relative project path.
      *
      * @param file a File pointing either to a JAR file in the Maven repo, or a project on disk
      * @return IPath which will either be workspace relative if match found, else same location (absolute)
