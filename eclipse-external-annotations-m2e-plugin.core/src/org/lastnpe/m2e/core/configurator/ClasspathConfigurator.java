@@ -169,7 +169,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             return readFile(file.toPath());
         } else if (fileOrDirectory.isFile()) {
             final Path jarFilePath = Paths.get(fileOrDirectory.toURI());
-            final URI jarEntryURI = URI.create("jar:file:" + jarFilePath.toUri().getPath() + "!/" + fileName);
+            final URI jarEntryURI = URI.create("jar:file:" + jarFilePath.toUri().getPath().replace(" ", "%20") + "!/" + fileName);
             try (FileSystem zipfs = FileSystems.newFileSystem(jarEntryURI, Collections.emptyMap())) {
                 final Path jarEntryPath = Paths.get(jarEntryURI);
                 return readFile(jarEntryPath);
