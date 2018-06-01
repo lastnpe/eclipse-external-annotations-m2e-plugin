@@ -34,6 +34,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
@@ -169,7 +170,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             return readFile(file.toPath());
         } else if (fileOrDirectory.isFile()) {
             final Path jarFilePath = Paths.get(fileOrDirectory.toURI());
-            final URI jarEntryURI = URI.create("jar:file:" + jarFilePath.toUri().getPath().replace(" ", "%20") + "!/" + fileName);
+            final URI jarEntryURI = URIUtil.toJarURI(jarFilePath.toUri(), new org.eclipse.core.runtime.Path(fileName));
             try (FileSystem zipfs = FileSystems.newFileSystem(jarEntryURI, Collections.emptyMap())) {
                 final Path jarEntryPath = Paths.get(jarEntryURI);
                 return readFile(jarEntryPath);
