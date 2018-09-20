@@ -27,6 +27,7 @@
 
   <modules>
     <module>eclipse-external-annotations-m2e-plugin.core</module>
+    <module>eclipse-external-annotations-m2e-plugin.core.tests</module>
     <module>eclipse-external-annotations-m2e-plugin.feature</module>
     <module>eclipse-external-annotations-m2e-plugin.site</module>
   </modules>
