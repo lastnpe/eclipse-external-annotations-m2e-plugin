@@ -3,11 +3,10 @@ package org.lastnpe.m2e.core.configurator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,7 +19,10 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Plugin;
@@ -34,7 +36,6 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
@@ -169,13 +170,16 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
             final File file = new File(fileOrDirectory, fileName);
             return readFile(file.toPath());
         } else if (fileOrDirectory.isFile()) {
-            final Path jarFilePath = Paths.get(fileOrDirectory.toURI());
-            final URI jarEntryURI = URIUtil.toJarURI(jarFilePath.toUri(), new org.eclipse.core.runtime.Path(fileName));
-            try (FileSystem zipfs = FileSystems.newFileSystem(jarEntryURI, Collections.emptyMap())) {
-                final Path jarEntryPath = Paths.get(jarEntryURI);
-                return readFile(jarEntryPath);
+            try (ZipFile jar = new ZipFile(fileOrDirectory)) {
+                ZipEntry entry = jar.getEntry(fileName);
+                if (entry == null) {
+                    return Optional.empty();
+                }
+                try (InputStream is = jar.getInputStream(entry)) {
+                    return Optional.of(IOUtils.toString(is, "UTF-8"));
+                }
             } catch (final IOException e) {
-                LOGGER.error("IOException from ZipFileSystemProvider for: {}", jarEntryURI, e);
+                LOGGER.error("IOException from ZipFile for: {}!{}", fileOrDirectory, fileName, e);
                 return Optional.empty();
             }
         } else {
