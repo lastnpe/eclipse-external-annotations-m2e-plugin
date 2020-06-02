@@ -450,7 +450,9 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         if (javaProject == null) {
             return;
         }
-        javaProject.setOptions(fromProperties(configurationCompilerArgumentsProperties));
+        Map<String, String> options = javaProject.getOptions(false);
+        options.putAll(fromProperties(configurationCompilerArgumentsProperties));
+        javaProject.setOptions(options);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
