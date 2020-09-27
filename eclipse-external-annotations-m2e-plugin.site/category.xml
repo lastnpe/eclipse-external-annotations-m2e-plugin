@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-  <feature url="features/org.lastnpe.m2e.feature_1.0.0.qualifier.jar" id="org.lastnpe.m2e.feature"
-    version="1.0.0.qualifier">
-    <category name="lastnpe.org" />
-  </feature>
-  <category-def name="lastnpe.org" label="lastnpe.org M2E plugin">
-    <description>
-      See https://github.com/lastnpe/eclipse-external-annotations-m2e-plugin
+   <feature url="features/org.lastnpe.m2e.feature_2.0.0.qualifier.jar" id="org.lastnpe.m2e.feature" version="2.0.0.qualifier">
+      <category name="lastnpe.org"/>
+   </feature>
+   <category-def name="lastnpe.org" label="lastnpe.org M2E plugin">
+      <description>
+         See https://github.com/lastnpe/eclipse-external-annotations-m2e-plugin
 
       Allows to configure the path to external annotations for the Maven Dependencies and JRE containers.
       See http://help.eclipse.org/oxygen/topic/org.eclipse.jdt.doc.user/tasks/task-using_external_null_annotations.htm
-    </description>
-  </category-def>
+      </description>
+   </category-def>
 </site>

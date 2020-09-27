@@ -2,7 +2,7 @@
 <feature
       id="org.lastnpe.m2e.feature"
       label="eclipse-external-annotations-m2e-plugin"
-      version="1.0.0.qualifier"
+      version="2.0.0.qualifier"
       provider-name="lastnpe.org"
       plugin="org.lastnpe.m2e.core">
 
