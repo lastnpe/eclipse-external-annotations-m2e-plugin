@@ -55,10 +55,10 @@ public class MavenGAV {
     }
 
     public boolean matches(ArtifactKey artifactKey) {
-        return groupId.equals(artifactKey.getGroupId())
-            && artifactId.equals(artifactKey.getArtifactId())
-            && (!version.isPresent() || version.get().equals(artifactKey.getVersion()))
-            && (!classifier.isPresent() || classifier.get().equals(artifactKey.getClassifier()));
+        return groupId.equals(artifactKey.groupId())
+            && artifactId.equals(artifactKey.artifactId())
+            && (!version.isPresent() || version.get().equals(artifactKey.version()))
+            && (!classifier.isPresent() || classifier.get().equals(artifactKey.classifier()));
     }
 
     @Override

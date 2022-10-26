@@ -210,7 +210,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     @Override
     public void configureRawClasspath(final ProjectConfigurationRequest request, final IClasspathDescriptor classpath,
             final IProgressMonitor monitor) throws CoreException {
-        final IMavenProjectFacade mavenProjectFacade = request.getMavenProjectFacade();
+        final IMavenProjectFacade mavenProjectFacade = request.mavenProjectFacade();
 
         /*
          * First check for the property for one global path for all classpaths.
@@ -247,7 +247,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
 
         final Optional<String> cpe = Optional.of(JRE_CONTAINER);
 
-        final MavenProject mavenProject = request.getMavenProject();
+        final MavenProject mavenProject = request.mavenProject();
         for (final Dependency dependency : mavenProject.getDependencies()) {
             // Filter by "*-eea" artifactId naming convention, just for performance
             if (!dependency.getArtifactId().endsWith("-eea")) {
@@ -369,7 +369,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
     @Override
     public void configure(final ProjectConfigurationRequest projectConfigurationRequest, final IProgressMonitor monitor)
             throws CoreException {
-        final MavenProject mavenProject = projectConfigurationRequest.getMavenProject();
+        final MavenProject mavenProject = projectConfigurationRequest.mavenProject();
         final Plugin plugin = mavenProject.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
         if (plugin == null) {
             return;
@@ -389,7 +389,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
                     final Properties configurationCompilerArgumentsProperties = new Properties();
                     try {
                         configurationCompilerArgumentsProperties.load(new StringReader(propertiesAsText));
-                        configureProjectFromProperties(projectConfigurationRequest.getProject(),
+                        configureProjectFromProperties(projectConfigurationRequest.mavenProjectFacade().getProject(),
                                 configurationCompilerArgumentsProperties);
                         return;
                     } catch (final IOException e) {
@@ -433,7 +433,7 @@ public class ClasspathConfigurator extends AbstractProjectConfigurator implement
         try (FileInputStream inputStream = new FileInputStream(configurationCompilerArgumentsFile)) {
             final Properties configurationCompilerArgumentsProperties = new Properties();
             configurationCompilerArgumentsProperties.load(inputStream);
-            configureProjectFromProperties(projectConfigurationRequest.getProject(),
+            configureProjectFromProperties(projectConfigurationRequest.mavenProjectFacade().getProject(),
                     configurationCompilerArgumentsProperties);
             return;
         } catch (final IOException e) {
