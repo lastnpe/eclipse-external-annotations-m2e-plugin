@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/lastnpe/eclipse-external-annotations-m2e-plugin.svg)](https://travis-ci.org/lastnpe/eclipse-external-annotations-m2e-plugin)
-
 Eclipse Maven integration (M2E extension) for null analysis
 ----
 
@@ -20,7 +18,14 @@ Configures the path to Eclipse external annotations for null analysis on the Mav
 
    * or by individually associating archives on the projects main (not maven-compiler-plugin) dependencies with classpath entries, based on a eea-for-gav marker file in the *-eea.jar which indicates for which Maven GAV it holds external annotations.
 
-p2 update site to install this from: `http://www.lastnpe.org/eclipse-external-annotations-m2e-plugin-p2-site/` _(The 404 is normal, just because there is no index.html; it will work in Eclipse.)_
+p2 update sites to install this from:
+
+* Recent Eclipse versions (>= 2022-09)  
+  https://www.lastnpe.org/eclipse-external-annotations-m2e-plugin-p2-site/m2e_2/
+* Older Eclipse versions (<= 2022-06)  
+  https://www.lastnpe.org/eclipse-external-annotations-m2e-plugin-p2-site/
+
+_These URLs will work with Eclipse but return a 404 error in browsers because they do not have an index.html file._
 
 You can also build it yourself:
 
@@ -29,8 +34,8 @@ git clone https://github.com/lastnpe/eclipse-external-annotations-m2e-plugin.git
 ./mvnw clean package
 ```
 
-see usage examples in [lastnpe/eclipse-null-eea-augments/examples/](https://github.com/lastnpe/eclipse-null-eea-augments/tree/master/examples/maven) (or [sylvainlaurent/null-pointer-analysis-examples](https://github.com/sylvainlaurent/null-pointer-analysis-examples/tree/master/with-external-annotations) for the older single EEA approach).
+See usage examples in [lastnpe/eclipse-null-eea-augments/examples/](https://github.com/lastnpe/eclipse-null-eea-augments/tree/master/examples/maven) (or [sylvainlaurent/null-pointer-analysis-examples](https://github.com/sylvainlaurent/null-pointer-analysis-examples/tree/master/with-external-annotations) for the older single EEA approach).
 
 If you like/use this project, a Star / Watch / Follow on GitHub is appreciated.
 
-see also http://lastnpe.org
+See also https://www.lastnpe.org/
