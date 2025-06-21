@@ -10,6 +10,33 @@
           <goal>compile</goal>
           <goal>test-compile</goal>
         </goals>
+        <parameters>
+          <compilerId>jdt</compilerId>
+        </parameters>
+      </pluginExecutionFilter>
+      <action>
+        <configurator>
+          <id>org.lastnpe.m2e.core.configurator.ClasspathConfigurator</id>
+          <runOnIncremental>false</runOnIncremental>
+          <runOnConfiguration>true</runOnConfiguration>
+        </configurator>
+      </action>
+    </pluginExecution>
+    <!-- We have to copy/paste REPEAT above below now,
+         just for compilerId eclipse instead of jdt;
+         it's otherwise identical, and must be kept in sync -->
+    <pluginExecution>
+      <pluginExecutionFilter>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <versionRange>[2.3,)</versionRange>
+        <goals>
+          <goal>compile</goal>
+          <goal>test-compile</goal>
+        </goals>
+        <parameters>
+          <compilerId>eclipse</compilerId>
+        </parameters>
       </pluginExecutionFilter>
       <action>
         <configurator>
@@ -20,5 +47,4 @@
       </action>
     </pluginExecution>
   </pluginExecutions>
-
 </lifecycleMappingMetadata>
